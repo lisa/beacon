@@ -4,7 +4,7 @@
 #define RANDOM_COLOUR (byte)random(1,8)
 #define RANDOM_BOARD (byte)random(0,5)
 #define RANDOM_LED (byte)random(0,10)
-#define RANDOM_PROGRAM (byte)6
+#define RANDOM_PROGRAM (byte)random(0,8)
 #define RANDOM_RUNS (int)random(200,300)
 #define RANDOM_RUN_DELAY (int)random(100,250) //250ms to 1s
 
@@ -154,6 +154,9 @@ void loop() {
       break;
       case 6:
       program6(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
+      break;
+      case 7:
+      program7(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
       break;
     }
     
@@ -405,13 +408,14 @@ void program5(const int runs, const int round_delay, struct layer layer[]) {
  * with a random colour for each up movement and a sepratate random colour
  * for each down movement. Primary colours only; use random_primary().
  * Since this is an expensive program we bias the number of runs in half.
+ * TODO: Clean this up!
 **/
 void program6(const int runs, const int round_delay, struct layer layer[]) {
   program_state state = PROG_INIT;
   byte colour, cur_layer;
   int runcount = 0, j;
   bool going_up = true;
-  while (runcount < (runs >> 1) {
+  while (runcount < (runs >> 1)) {
     switch (state) {
       case PROG_INIT:
       going_up = true;
@@ -502,4 +506,39 @@ void program6(const int runs, const int round_delay, struct layer layer[]) {
       break;
     }    
   }  
+}
+
+/* (2 on) One LED chases another around the board */
+void program7(const int runs, const int round_delay, struct layer layer[]) {
+  program_state state = PROG_INIT;
+  byte leader_colour = RANDOM_COLOUR, chaser_colour = RANDOM_COLOUR;
+  byte leader_led = 4, chaser_led = 1;
+  int runcount = 0;
+  while (runcount < runs) {
+    switch (state) {
+      case PROG_INIT:
+      set_led_status(layer[0],leader_led,leader_colour);
+      set_led_status(layer[0],chaser_led,chaser_colour);
+      state = PROG_DELAY;
+      runcount += 1;
+      break;
+      
+      case PROG_ADVANCE:
+      set_led_status(layer[0],leader_led,DARK);
+      leader_led = (leader_led + 1) % 10;
+      set_led_status(layer[0],leader_led,leader_colour);
+      set_led_status(layer[0],chaser_led,DARK);
+      chaser_led = (chaser_led + 1) % 10;
+      set_led_status(layer[0],chaser_led,chaser_colour);
+      state = PROG_DELAY;
+      runcount += 1;
+      break;
+      
+      
+      case PROG_DELAY:
+      delay(100);
+      state = PROG_ADVANCE;
+      break;
+    } 
+  }
 }
