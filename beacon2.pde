@@ -1,4 +1,5 @@
 #include <Wire.h>
+#include <EEPROM.h>
 
 #define MAX_I2C_RETRIES 100
 #define RANDOM_COLOUR (byte)random(1,8)
@@ -7,6 +8,8 @@
 #define RANDOM_PROGRAM (byte)random(0,8)
 #define RANDOM_RUNS (int)random(200,300)
 #define RANDOM_RUN_DELAY (int)random(100,250) //250ms to 1s
+
+#define RANDOMSEED_EEPROM_LOC 0x5
 
 // #define DO_TESTPROGRAM
 #define PROGRAMTEST_DELAY 1000
@@ -79,6 +82,7 @@ loop_state loopstate;
 void setup() {
   int i;
 
+  set_random();
   for (i = 0; i < 31; i++)
     pinMode(i,OUTPUT);
 
@@ -118,6 +122,7 @@ void setup() {
     
   loopstate = LOOP_INIT;
   Wire.begin();
+  
 #ifdef DO_TESTPROGRAM
   programtest(1,layer);
 #endif
@@ -135,7 +140,7 @@ void loop() {
     case LOOP_GO:
     switch (RANDOM_PROGRAM) {
       case 0:
-      program0(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
+      delay(30000); /* No op, let's let the slaves sleep! */
       break;
       case 1:
       program1(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
@@ -166,6 +171,13 @@ void loop() {
     break;    
   }  
 }
+
+inline void set_random() {
+  randomSeed(EEPROM.read(RANDOMSEED_EEPROM_LOC));
+  EEPROM.write(RANDOMSEED_EEPROM_LOC,random(255));
+  return;  
+}
+
 inline void set_led_status(struct layer layer, const byte led_idx, const byte colour) {
   int retried = 0;
   layer.leds[led_idx].colour = colour;
@@ -222,13 +234,6 @@ void programtest( const int runs, struct layer layer[]) {
       delay(PROGRAMTEST_DELAY);
     }
   }
-}
-
-
-/* No op */
-void program0( const int runs,  const int round_delay, struct layer layer[]) {
-  delay(runs * round_delay);
-  return;  
 }
 
 
@@ -458,8 +463,6 @@ void program6(const int runs, const int round_delay, struct layer layer[]) {
           going_up = false;
           for (j = 0; j < 10; j++) {
             set_led_status(layer[4], j, DARK);
-          }
-          for (j = 0; j < 10; j++) {
             set_led_status(layer[3], j, colour);
           }
           cur_layer = 3;
@@ -467,8 +470,6 @@ void program6(const int runs, const int round_delay, struct layer layer[]) {
         else {
           for (j = 0; j < 10; j++) {
             set_led_status(layer[cur_layer], j, DARK);
-          }
-          for (j = 0; j < 10; j++) {
             set_led_status(layer[cur_layer + 1], j, colour);
           }
           cur_layer += 1;
@@ -480,8 +481,6 @@ void program6(const int runs, const int round_delay, struct layer layer[]) {
           going_up = true;
           for (j = 0; j < 10; j++) {
             set_led_status(layer[cur_layer], j, DARK);
-          }
-          for (j = 0; j < 10; j++) {
             set_led_status(layer[1], j, colour);
           }
           cur_layer = 1;
@@ -489,8 +488,6 @@ void program6(const int runs, const int round_delay, struct layer layer[]) {
         else {
           for (j = 0; j < 10; j++) {
             set_led_status(layer[cur_layer], j, DARK);
-          }
-          for (j = 0; j < 10; j++) {
             set_led_status(layer[cur_layer - 1], j, colour);
           }
           cur_layer -= 1;
