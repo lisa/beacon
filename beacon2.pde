@@ -193,7 +193,7 @@ inline void set_led_status(struct layer layer, const byte led_idx, const byte co
       Wire.beginTransmission(layer.i2c_addr);
       Wire.send(led_idx);
       Wire.send(layer.leds[led_idx].colour); /* other end needs to decode as above */
-    } while (retried++ < MAX_I2C_RETRIES && Wire.endTransmission() > 0);
+    } while (Wire.endTransmission() > 0 &&  retried++ <= MAX_I2C_RETRIES);
   }
   return;
 }
