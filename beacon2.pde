@@ -1,13 +1,16 @@
 #include <Wire.h>
 #include <EEPROM.h>
+#include <avr/wdt.h>
 
+#define WDT_TIMEOUT 9  // ~8 seconds
 #define MAX_I2C_RETRIES 100
 #define RANDOM_COLOUR (byte)random(1,8)
 #define RANDOM_BOARD (byte)random(0,5)
 #define RANDOM_LED (byte)random(0,10)
-#define RANDOM_PROGRAM (byte)random(0,8)
+#define RANDOM_PROGRAM (byte)random(0,9)
 #define RANDOM_RUNS (int)random(200,300)
 #define RANDOM_RUN_DELAY (int)random(100,250) //250ms to 1s
+#define RANDOM_BOOL (bool)random(0, 2)
 
 #define RANDOMSEED_EEPROM_LOC 0x5
 
@@ -80,6 +83,9 @@ struct layer layer[5];
 loop_state loopstate;
   
 void setup() {
+  wdt_disable();
+  wdt_enable(WDT_TIMEOUT);
+  wdt_reset();
   int i;
 
   set_random();
@@ -121,6 +127,9 @@ void setup() {
     layer[i].i2c_addr = i;
     
   loopstate = LOOP_INIT;
+  wdt_reset();
+  // disable the TWI module in case it's still hung up somehow from before a reset
+  TWCR = 0;
   Wire.begin();
   
 #ifdef DO_TESTPROGRAM
@@ -140,7 +149,10 @@ void loop() {
     case LOOP_GO:
     switch (RANDOM_PROGRAM) {
       case 0:
-      delay(30000); /* No op, let's let the slaves sleep! */
+      for (int i = 0; i < 30; i++) {
+        wdt_reset();
+        delay(1000);
+      }
       break;
       case 1:
       program1(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
@@ -162,6 +174,9 @@ void loop() {
       break;
       case 7:
       program7(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
+      break;
+      case 8:
+      program8(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
       break;
     }
     
@@ -193,15 +208,29 @@ inline void set_led_status(struct layer layer, const byte led_idx, const byte co
       Wire.beginTransmission(layer.i2c_addr);
       Wire.send(led_idx);
       Wire.send(layer.leds[led_idx].colour); /* other end needs to decode as above */
-    } while (Wire.endTransmission() > 0 &&  retried++ <= MAX_I2C_RETRIES);
+    } while (Wire.endTransmission() > 0 && retried++ <= MAX_I2C_RETRIES);
   }
   return;
 }
+
+inline void fade_mode(const bool on) {
+  int retried = 0;
+  for(byte layernbr=1; layernbr<5; layernbr++) {
+    retried = 0;
+    do {
+      Wire.beginTransmission(layer[layernbr].i2c_addr);
+      Wire.send(0);
+      Wire.send((on ? 128 : 64)); /* 128 turns on fade mode, 64 turns it off */
+    } while (retried++ < MAX_I2C_RETRIES && Wire.endTransmission() > 0);
+  }
+}
+
 
 inline void turn_off_all_leds(struct layer layer[]) {
    byte i, j;
   for (i = 0; i < 5; i++) {
     for (j = 0; j < 10; j++) {
+      wdt_reset();
       set_led_status(layer[i],j,DARK);
       delay(2);
     }
@@ -227,6 +256,7 @@ void programtest( const int runs, struct layer layer[]) {
   turn_off_all_leds(layer);
   for (i = 0; i < 5; i++) {
     for (j = 0; j < 10; j++) {
+      wdt_reset();
       /* Turning on WHITE turns on all LEDs */
       set_led_status(layer[i],j,WHITE); 
       delay(PROGRAMTEST_DELAY);
@@ -260,6 +290,7 @@ void program1( const int runs,  const int round_delay, struct layer layer[]) {
       break;
       
       case PROG_ADVANCE:
+      wdt_reset();
       colour = RANDOM_COLOUR;
       for (j = 0; j < 5; j++ ) {
         set_led_status(layer[j], (start_idx + j) % 10, DARK);
@@ -291,6 +322,7 @@ void program2( const int runs,  const int round_delay, struct layer layer[]) {
   while (runcount++ < runs) {
     switch (state) {
       case PROG_ADVANCE:
+      wdt_reset();
       set_led_status(layer[last_board_idx], last_led_idx, DARK);
       last_led_idx = RANDOM_LED;
       last_board_idx = RANDOM_BOARD;
@@ -318,6 +350,7 @@ void program3(const int runs,  const int round_delay, struct layer layer[]) {
   while (runcount < runs) {
     switch (state) {
       case PROG_ADVANCE:
+      wdt_reset();
       colour = RANDOM_COLOUR;
       for (i = 0; i < 5; i++) {
         set_led_status(layer[i],((runcount - 1) % 10), DARK);
@@ -343,6 +376,7 @@ void program4(const int runs, const int round_delay, struct layer layer[]) {
   while (runcount < runs) {
     switch (state) {
       case PROG_ADVANCE:
+      wdt_reset();
       for (i = 0; i < 5; i++) {
         set_led_status(layer[i],((runcount - 1) % 10), DARK);
         set_led_status(layer[i],runcount % 10, RANDOM_COLOUR);
@@ -379,6 +413,7 @@ void program5(const int runs, const int round_delay, struct layer layer[]) {
       break;
       
       case PROG_ADVANCE:
+      wdt_reset();
       for (i = 1; i < 4; i++) {
         if (runcount % 2 == 0) {
           set_led_status(layer[i], 7, DARK);
@@ -434,6 +469,7 @@ void program6(const int runs, const int round_delay, struct layer layer[]) {
       break;
       
       case PROG_ADVANCE:
+      wdt_reset();
       /*
       When going up:
        When the current layer is 4 turn around:
@@ -521,6 +557,7 @@ void program7(const int runs, const int round_delay, struct layer layer[]) {
       break;
       
       case PROG_ADVANCE:
+      wdt_reset();
       set_led_status(layer[0],leader_led,DARK);
       leader_led = (leader_led + 1) % 10;
       set_led_status(layer[0],leader_led,leader_colour);
@@ -537,5 +574,42 @@ void program7(const int runs, const int round_delay, struct layer layer[]) {
       state = PROG_ADVANCE;
       break;
     } 
+  }
+}
+
+/* (3 on): Illuminate one LED in each primary colour colour, then choose a 
+   direction for each LED to movand move the lit LED there.  Repeat.
+*/
+void program8(const int runs, const int round_delay, struct layer layer[]) {
+  struct single_led {
+    byte layer;
+    byte led;
+    byte colour;
+  };
+  
+  struct single_led lit_led[3];
+  lit_led[0].layer = 2;
+  lit_led[0].led = 0;
+  lit_led[0].colour = RED;
+  lit_led[1].layer = 2;
+  lit_led[1].led = 0;
+  lit_led[1].colour = GREEN;
+  lit_led[2].layer = 2;
+  lit_led[2].led = 0;
+  lit_led[2].colour = BLUE;
+  
+  for(int runcount=0; runcount<runs; runcount++) {
+    wdt_reset();
+    for(byte i=0; i<3; i++) {
+      delay(round_delay);
+      set_led_status(layer[lit_led[i].layer], lit_led[i].led, DARK);
+      lit_led[i].layer += random(-1, 2);
+      lit_led[i].led += random(-1, 2);
+      if(lit_led[i].led < 0) lit_led[i].led = 9;
+      if(lit_led[i].led > 9) lit_led[i].led = 0;
+      if(lit_led[i].layer < 0) lit_led[i].layer = 4;
+      if(lit_led[i].layer > 4) lit_led[i].layer = 0;
+      set_led_status(layer[lit_led[i].layer], lit_led[i].led, lit_led[i].colour);
+    }
   }
 }
