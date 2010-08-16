@@ -176,7 +176,7 @@ void loop() {
       program7(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
       break;
       case 8:
-      program8(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
+      program8(RANDOM_RUNS, RANDOM_RUN_DELAY >> 1, layer);
       break;
     }
     
@@ -602,14 +602,31 @@ void program8(const int runs, const int round_delay, struct layer layer[]) {
     wdt_reset();
     for(byte i=0; i<3; i++) {
       delay(round_delay);
-      set_led_status(layer[lit_led[i].layer], lit_led[i].led, DARK);
+
+      // figure out what colour this specific pixel should be once our led is shut off and set it
+      byte mixed_colour = DARK;
+      for(byte other_leds=0; other_leds < 3; other_leds++) {
+        if(other_leds == i) continue;
+        if(lit_led[other_leds].layer == lit_led[i].layer && lit_led[other_leds].led == lit_led[i].led)
+          mixed_colour |= lit_led[other_leds].colour;
+      }
+      set_led_status(layer[lit_led[i].layer], lit_led[i].led, mixed_colour);
+      
+      // figure out a random direction and move our led to that pixel
       lit_led[i].layer += random(-1, 2);
       lit_led[i].led += random(-1, 2);
       if(lit_led[i].led < 0) lit_led[i].led = 9;
       if(lit_led[i].led > 9) lit_led[i].led = 0;
       if(lit_led[i].layer < 0) lit_led[i].layer = 4;
       if(lit_led[i].layer > 4) lit_led[i].layer = 0;
-      set_led_status(layer[lit_led[i].layer], lit_led[i].led, lit_led[i].colour);
+      
+      // mix in the colours of any other leds that are sharing this specific pixel with us right now and set it
+      mixed_colour = lit_led[i].colour;
+      for(byte other_leds=0; other_leds < 3; other_leds++) {
+        if(lit_led[other_leds].layer == lit_led[i].layer && lit_led[other_leds].led == lit_led[i].led)
+          mixed_colour |= lit_led[other_leds].colour;
+      }
+      set_led_status(layer[lit_led[i].layer], lit_led[i].led, mixed_colour);
     }
   }
 }
