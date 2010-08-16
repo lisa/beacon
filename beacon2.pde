@@ -3,7 +3,7 @@
 #include <avr/wdt.h>
 
 #define WDT_TIMEOUT 9  // ~8 seconds
-#define MAX_I2C_RETRIES 100
+#define MAX_I2C_RETRIES 10
 #define RANDOM_COLOUR (byte)random(1,8)
 #define RANDOM_BOARD (byte)random(0,5)
 #define RANDOM_LED (byte)random(0,10)
