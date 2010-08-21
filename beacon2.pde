@@ -9,8 +9,10 @@
 #define RANDOM_LED (byte)random(0,10)
 #define RANDOM_PROGRAM (byte)random(0,9)
 #define RANDOM_RUNS (int)random(200,300)
-#define RANDOM_RUN_DELAY (int)random(100,250) //250ms to 1s
+#define RANDOM_RUN_DELAY (int)random(100,200)
 #define RANDOM_BOOL (bool)random(0, 2)
+
+#define PROGRAM1_DELAY 100
 
 #define RANDOMSEED_EEPROM_LOC 0x5
 
@@ -155,7 +157,7 @@ void loop() {
       }
       break;
       case 1:
-      program1(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
+      program1(RANDOM_RUNS, PROGRAM1_DELAY, layer);
       break;
       case 2:
       program2(RANDOM_RUNS, RANDOM_RUN_DELAY, layer);
