@@ -91,7 +91,7 @@ void setup() {
   int i;
 
   set_random();
-  for (i = 0; i < 31; i++)
+  for (i = 0; i <= 31; i++)
     pinMode(i,OUTPUT);
 
   layer[0].i2c_addr = NULL; /* master is NULL */
