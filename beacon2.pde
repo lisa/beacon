@@ -395,7 +395,7 @@ void program4(const int runs, const int round_delay, struct layer layer[]) {
 }
 
 /* (9 on): "Cop Mode" - LEDs 2, 3, 4 and 7, 8, 9 of  Layers 1, 2 and 3 
- * alternate red and blue in groups (3-5, then 0,9,8). There will be one side
+ * alternate green and blue in groups (3-5, then 0,9,8). There will be one side
  * on at any given time.
 **/
 void program5(const int runs, const int round_delay, struct layer layer[]) {
@@ -406,9 +406,9 @@ void program5(const int runs, const int round_delay, struct layer layer[]) {
     switch (state) {
       case PROG_INIT:
       for (i = 1; i < 4; i++) {
-        set_led_status(layer[i],2,RED);
-        set_led_status(layer[i],3,RED);
-        set_led_status(layer[i],4,RED);
+        set_led_status(layer[i],2,GREEN);
+        set_led_status(layer[i],3,GREEN);
+        set_led_status(layer[i],4,GREEN);
       }
       state = PROG_ADVANCE;
       runcount += 1;
@@ -421,9 +421,9 @@ void program5(const int runs, const int round_delay, struct layer layer[]) {
           set_led_status(layer[i], 7, DARK);
           set_led_status(layer[i], 8, DARK);
           set_led_status(layer[i], 9, DARK);
-          set_led_status(layer[i], 2, RED);
-          set_led_status(layer[i], 3, RED);
-          set_led_status(layer[i], 4, RED);
+          set_led_status(layer[i], 2, GREEN);
+          set_led_status(layer[i], 3, GREEN);
+          set_led_status(layer[i], 4, GREEN);
         }
         else {
           set_led_status(layer[i], 7, BLUE);
