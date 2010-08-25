@@ -369,11 +369,12 @@ void program3(const int runs,  const int round_delay, struct layer layer[]) {
   } 
 }
 
-/* (5 on): Vertical columns of LEDs rotating around the axis with random colour for each LED of each frame */
+/* (5 on): Vertical columns of LEDs rotating around the axis with random colour throughout the program */
 void program4(const int runs, const int round_delay, struct layer layer[]) {
   program_state state = PROG_ADVANCE;
    int runcount = 0;
-   byte i = 0, j = 0, last_board_idx = 0, colour = DARK;
+   byte i = 0, j = 0, last_board_idx = 0, colour = RANDOM_COLOUR;
+   
   
   while (runcount < runs) {
     switch (state) {
@@ -381,7 +382,7 @@ void program4(const int runs, const int round_delay, struct layer layer[]) {
       wdt_reset();
       for (i = 0; i < 5; i++) {
         set_led_status(layer[i],((runcount - 1) % 10), DARK);
-        set_led_status(layer[i],runcount % 10, RANDOM_COLOUR);
+        set_led_status(layer[i],runcount % 10, colour);
       }
       runcount += 1;
       state = PROG_DELAY;
